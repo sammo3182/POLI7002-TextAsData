@@ -1,0 +1,30 @@
+---
+title: "Text as Data---Class notes"
+author: "Hu, Yue"
+date: '`r Sys.Date()`'
+output: html_notebook
+---
+
+# "2016-08-22"
+
+* Complexity of language:
+    + "Time flies like an arrow; fruit flies like a banana.""
+    + "Make peace, not war; make war not peace."
+    
+# "2016-08-29"
+Create a virtual Environment
+
+```{python}
+sent = "bryce is" + "cool."
+print(sent)
+
+sentRep = (sent + '\n') * 4
+print(sentRep)
+
+
+letters = "abcd"
+print(letters[-2:-1])
+```
+
+
+

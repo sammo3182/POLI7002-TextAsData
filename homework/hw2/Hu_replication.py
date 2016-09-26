@@ -1,4 +1,4 @@
-# Title: Homework 2
+# Title: Homework2_Replication
 # Author: Yue Hu
 # Environment: Win 10, Python 3.5
 # Purpose: The assignment is a project using the New York Time API to scrape text data.
@@ -30,10 +30,10 @@ print(type(data))  # check the type of the data
 
 print("\nThe keys in the 'data' dictionary are ", data.keys(), "\n") # check what are in the data
 
-print("The type of the 'data' is")
-print(type(data))
+print("The type of the 'response' is")
+print(type(data["response"]))
 
-print("The keys in the 'data' dictionary are ", data["response"].keys, "\n") # check what are in the data
+print("The keys in the 'response' dictionary are ", data["response"].keys, "\n") # check what are in the data
 
 print(data["response"]["meta"]) # show what's in "meta".
 # 'offset': 10, each time calls the API will return 10 articles. 
@@ -67,6 +67,7 @@ print("The lead paragraph of the article ", doc_num,": ", data["response"]["docs
 
 keep_going = True # set the trigger when the while loop ends.
 page_num = 1 # start scrapping from the first page
+doc_total = 10 # found from the previous checks
 
 while keep_going == True:
 	print(page_num) # double check if going through each page
@@ -77,19 +78,19 @@ while keep_going == True:
 	apiKey = "951312b93d9e42d8b16c699a130fa5ef"
 
 	url = "http://api.nytimes.com/svc/search/v2/articlesearch.json?fq=" + content + "&page=" + str(page_num) +"&begin_date=" + dateStart + "&end_date=" + dateEnd + "&api-key=" + apiKey
+	
+	response = requests.get(url)	
+	data = response.json()
 
 	if len(data["response"]["docs"]) == 0: # when there is no docs
 		keep_going = False
 	else:
 		page_num += 1
-		start_doc = 0
-		end_doc = data["response"]["meta"]["offset"] - 1
+		 # python excludes the last one in a range.
 
-		response = requests.get(url)
-		
-		data = response.json() 
-		
-		for doc_num in range(start_doc, end_doc):
+		doc_total = len(data["response"]["docs"])
+		for doc_num in range(doc_total):
+			print(doc_num, "/", doc_total) # to trace the progress
 			# Create the variables
 			pub_date = data["response"]["docs"][doc_num]["pub_date"]
 			if len(pub_date) == 0: pub_date == "NA"  # in case of the missing data
@@ -97,17 +98,19 @@ while keep_going == True:
 			headline = data["response"]["docs"][doc_num]["headline"]["main"]
 			if len(headline) == 0: headline == "NA"
 
-			if doc_num == 2:
-				print(data["response"]["docs"][doc_num]["byline"])
-
-			byline = data["response"]["docs"][doc_num]["byline"]["original"]
+			if isinstance(data["response"]["docs"][doc_num]["byline"], dict): 
+				byline = data["response"]["docs"][doc_num]["byline"]["original"]
+                # When the byline is empty, it may return an empty list rather than a dictonary, and there could return an error.
 			if len(byline) == 0: byline == "NA"
 
 			lead_paragraph = data["response"]["docs"][doc_num]["lead_paragraph"]
-			if len(lead_paragraph) == 0: lead_paragraph == "NA"
+			if lead_paragraph == None or len(lead_paragraph) == 0: lead_paragraph == "NA"
 
 			# Write the data into the csv file
 			row = [pub_date, headline, byline, lead_paragraph]
+			# for x in row:
+			# 	if x != None:
+			# 		x = x.encode("gbk", "ignore")
 			with open("./results.csv", "a") as my_csv: # “a” means append
 				data_writer = csv.writer(my_csv).writerow(row)
 
