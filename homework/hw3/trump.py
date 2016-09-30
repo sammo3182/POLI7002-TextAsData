@@ -15,8 +15,8 @@ from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 
 # set working directory
-# wd = "./hw3/"
-wd = "./"
+wd = "./hw3/"
+#wd = "./"
 
 html_path = wd + 'trump.html'
 html_file = codecs.open(html_path, encoding='utf-8') # opent the file
@@ -24,6 +24,16 @@ soup = BeautifulSoup(html_file, 'html.parser') # parse with beautiful soup
 
 d = {}  # default dict
 key_count = 0 # starting number
+
+# get index: to check the article match later.
+key_count = 0
+index_data = soup.find_all('div', class_ = 'c0')
+for index in index_data:
+    if "of 1000 DOCUMENTS" in indiex.find_all('span', class_='c2')[0].get_text():
+        key_count += 1
+        d[str(key_count)]['index'] = index.find_all('span')[0].get_text()
+
+
 
 # get date
 date_data = soup.find_all('div', class_='c3') 
@@ -46,11 +56,15 @@ for date in date_data:
 title_data = soup.find_all('span', class_='c6')
 key_count = 0
 for title in title_data:
-    key_count += 1
-    d[str(key_count)]['title'] = title.get_text()
-## only 97 titles        
+    if len(title.find_all('span', class_= 'c6'))>0:
+        temp_title = title.find_all('span', class_='c6')[0].get_text()
+    if len(title.find_all('span', class_= 'c7')) != 0:
+        if "LENGTH:" in title.find_all('span', class_='c7')[0].get_text():
+            key_count += 1
+            d[str(key_count)]['title'] = temp_title
 
-# get byline
+
+# get byline(Problematic)
 byline_data = soup.find_all('p', class_='c5') # data including byline, section, etc.
 # print(len(byline_data))
 key_count = 0
@@ -65,55 +79,55 @@ for byline in byline_data:
             
 
 
-# # get text
-# text_data = soup.find_all('div', class_='c4')
-# key_count = 0
-# for text in text_data:
-#     if len(text.find_all('p', class_='c8')) > 0: # the first element does not have text.
-#         key_count += 1
-#         article = '' # empty string
-#         for line in text.find_all('p', class_='c8'):
-#             article += line.get_text() # combined lines into a paragraph
-#         d[str(key_count)]['text'] = article
+# get text
+text_data = soup.find_all('div', class_='c4')
+key_count = 0
+for text in text_data:
+    if len(text.find_all('p', class_='c8')) > 0: # the first element does not have text.
+        key_count += 1
+        article = '' # empty string
+        for line in text.find_all('p', class_='c8'):
+            article += line.get_text() # combined lines into a paragraph
+        d[str(key_count)]['text'] = article
 
-# # preprocessing
-# original_stopwords = stopwords.words('english')
-# custom_stopwords = stopwords.words('english')
-# custom_stopwords.append('&quot;')
-# custom_stopwords.append('&nbsp;')
-# custom_stopwords.append('&amp;')
+# preprocessing
+original_stopwords = stopwords.words('english')
+custom_stopwords = stopwords.words('english')
+custom_stopwords.append('&quot;')
+custom_stopwords.append('&nbsp;')
+custom_stopwords.append('&amp;')
 
-# for key in range(1, 100):
-#     # remove punctuation and capitalization
-#     article = re.sub('\W', ' ', d[str(key)]['text'].lower())
+for key in range(1, 100):
+    # remove punctuation and capitalization
+    article = re.sub('\W', ' ', d[str(key)]['text'].lower())
 
-#     # get unigrams
-#     article_words = word_tokenize(article)
+    # get unigrams
+    article_words = word_tokenize(article)
 
-#     # remove stop words
-#     clean_article = filter(lambda x: x not in original_stopwords, article_words)
-#     clean_article = list(clean_article)
+    # remove stop words
+    clean_article = filter(lambda x: x not in original_stopwords, article_words)
+    clean_article = list(clean_article)
 
-#     # apply stemmer
-#     stemmer = SnowballStemmer('english')
-#     snowball_words = [stemmer.stem(word) for word in clean_article]
+    # apply stemmer
+    stemmer = SnowballStemmer('english')
+    snowball_words = [stemmer.stem(word) for word in clean_article]
 
-#     # print words
-#     d[str(key)]['clean_text'] = ' '.join(snowball_words)
+    # print words
+    d[str(key)]['clean_text'] = ' '.join(snowball_words)
 
-#     # remove custom stop words
-#     clean_article = filter(lambda x: x not in custom_stopwords, article_words)
-#     clean_article = list(clean_article)
+    # remove custom stop words
+    clean_article = filter(lambda x: x not in custom_stopwords, article_words)
+    clean_article = list(clean_article)
 
-#     # apply stemmer
-#     stemmer = SnowballStemmer('english')
-#     snowball_words = [stemmer.stem(word) for word in clean_article]
+    # apply stemmer
+    stemmer = SnowballStemmer('english')
+    snowball_words = [stemmer.stem(word) for word in clean_article]
 
-#     # print words
-#     d[str(key)]['clean_text2'] = ' '.join(snowball_words)
+    # print words
+    d[str(key)]['clean_text2'] = ' '.join(snowball_words)
 
 
-# # save the file as a JSON file
-# file_name = wd + "lexis.json"
-# with open(file_name, "w") as writeJSON:
-#     json.dump(d, writeJSON)
+# save the file as a JSON file
+file_name = wd + "lexis.json"
+with open(file_name, "w") as writeJSON:
+    json.dump(d, writeJSON)
