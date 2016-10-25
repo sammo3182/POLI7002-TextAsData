@@ -1,0 +1,91 @@
+---
+title: "POLI7002:Homework 4"
+author: "Hu, Yue"
+date: '`r Sys.Date()`'
+output: html_notebook
+---
+
+# Data manipulation
+Package preload:
+```{r}
+library(pacman)
+p_load(ggplot2, # Visualization
+       rjson, quanteda, tm, # analysis
+       haven, descr, stringr, data.table, feather, 
+       tibble, purrr, dplyr) # data wrangling
+```
+
+The `quanteda` is good at Luke dictionary (`liwc`).
+
+Input the dictionary and text files.
+In the dictionary, there are multiple categories.
+What we are interested in in this project is "positive" and "negative."
+
+```{r}
+liwc <- dictionary(file = "LIWC2007.txt",format = "LIWC")
+names(liwc)
+#load trump download
+trump <- fromJSON(file = "../hw3/trump.json")
+```
+
+The input `json` is a list of texts and their meta data. 
+The following step is thus to draw the texts out and convert it to a `VCorpus`, so as to inputing into `quanteda` functions.
+
+```{r}
+trump_articles <- map(trump, "text")
+trump_corpus <- Corpus(VectorSource(trump_articles)) %>% corpus()
+
+# count the words
+trump_wc <- dfm(trump_corpus) %>% # creating a document-feature matrix
+  rowSums()
+head(trump_wc)
+```
+
+Then we can use the dictionary file to analyze the `document-feature matrix` (viz., the DTM) just got.
+
+```{r}
+trump_dfm <- dfm(trump_corpus,  # corpus
+                 dictionary = liwc, # dictionary file
+                 removeNumbers = TRUE,  # remove the digits
+                 removePunct = TRUE,  # remove the punctuations
+                 ignoredFeatures = stopwords("english")) # tokenization
+```
+
+What we are looking for are the "positive" and "negative" categories.
+So, we search where the root *pos* and *neg* locate according to the index stored in the `trump_dfm@Dimnames$features`.
+Here we use the basic `grep` function, since it gives the position directly.
+`stringi::str_locale_get` seems having the same function---but, why bothers~
+
+```{r}
+grep("pos", trump_dfm@Dimnames$features, value = T)
+grep("neg", trump_dfm@Dimnames$features, value = T)
+```
+
+So, the goal here is to create a bar chart in R that shows the percentage of positive and negative words for each month in your data.
+
+```{r eval = F}
+#liwc
+trump_dfm <- dfm(trump_corpus, 
+                 dictionary = liwc,
+                 removeNumbers = TRUE, 
+                 removePunct = TRUE, 
+                 ignoredFeatures = stopwords("english"))
+trump_pos<-as.numeric(trump_dfm[,24])
+trump_neg<-as.numeric(trump_dfm[,25])
+
+#boxplot
+boxplot(data.frame(cbind("Positive"=trump_pos/trump_wc,"Negative"=trump_neg/trump_wc)))
+
+#custom dictionary
+my_dictionary <- list(spending=c("expensive", "cost", "deficit","spending"),
+               spending2=c("expensive", "cost", "deficit","spend*"))
+
+trump_dfm2<-dfm(trump_corpus,dictionary=my_dictionary,removeNumbers = TRUE, removePunct = TRUE, ignoredFeatures = stopwords("english"))
+trump_spend<-as.numeric(trump_dfm2[,1])
+trump_spend2<-as.numeric(trump_dfm2[,2])
+
+#boxplot...spending
+boxplot(data.frame(cbind("Spending1"=trump_spend/trump_wc,"Spending2"=trump_spend2/trump_wc)))
+
+```
+
