@@ -93,17 +93,15 @@ trumpMonth <- mutate(trumpSent, month = lubridate::month(date, label = T)) %>%
       tidyr::gather(sentiment, counts, sumPos:sumNeg)
   # reshape the data
 
-ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment))+
-  geom_bar(stat = "identity", position=position_dodge()) +
+ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
   # bar graph basic
   xlab("Month") + ylab("Sum of Word Counts") +
   # axes labels
   ggtitle("Dictionary-Based Sentiment Analysis", subtitle = "Trump-related Articles from NYT") + 
   # title
-  scale_fill_discrete(name="Sentiment",breaks=c("sumPos", "sumNeg"),
-                      labels=c("Positive", "Negative"))
-  # legend
-
+  scale_fill_discrete(name = "Sentiment",breaks = c("sumPos", "sumNeg"),
+                      labels = c("Positive", "Negative"))
 ```
 
 The next task is to replicate the above analysis but with a custom dictionary. 
@@ -145,6 +143,5 @@ ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment)) +
   ggtitle("Dictionary-Based Issue Analysis", subtitle = "Trump-related Articles from NYT") + 
   # title
   scale_fill_discrete(name = "Issue")
-  # legend
 ```
 
