@@ -42,13 +42,17 @@ head(trump_wc)
 ```
 
 Then we can use the dictionary file to analyze the `document-feature matrix` (viz., the DTM) just got.
+NB: the assignement requires custom stopwords. 
 
 ```{r}
+# customize stopwords
+stopCust <- c(stopwords("english"), "america", "trump", "donald", "rubio", "hillary")
+
 trump_dfm <- dfm(trump_corpus,  # corpus
                  dictionary = liwc, # dictionary file
                  removeNumbers = TRUE,  # remove the digits
                  removePunct = TRUE,  # remove the punctuations
-                 ignoredFeatures = stopwords("english")) # tokenization
+                 ignoredFeatures = stopCust) # tokenization
 ```
 
 What we are looking for are the "positive" and "negative" categories.
@@ -61,31 +65,86 @@ grep("pos", trump_dfm@Dimnames$features, value = T)
 grep("neg", trump_dfm@Dimnames$features, value = T)
 ```
 
-So, the goal here is to create a bar chart in R that shows the percentage of positive and negative words for each month in your data.
+The goal here is to create a bar chart in R that shows the percentage of positive and negative words for each month in your data.
+To achieve this, we need not only to know the distribution of each article, but also to aggregate the data by months. 
+First, let's merge time tags with the sentiment data.
 
-```{r eval = F}
-#liwc
-trump_dfm <- dfm(trump_corpus, 
-                 dictionary = liwc,
-                 removeNumbers = TRUE, 
-                 removePunct = TRUE, 
-                 ignoredFeatures = stopwords("english"))
-trump_pos<-as.numeric(trump_dfm[,24])
-trump_neg<-as.numeric(trump_dfm[,25])
+```{r}
+trump_date <- map_chr(trump, "date") %>% # capture the data
+  unname() %>%
+    map_dbl(function(date) as.Date(date, format = "%B %d, %Y")) %>%
+      as.POSIXct.Date() # the hms are redundent, but just leave them there.
 
-#boxplot
-boxplot(data.frame(cbind("Positive"=trump_pos/trump_wc,"Negative"=trump_neg/trump_wc)))
+trumpSent <- data.frame(date = trump_date, pos = as.numeric(trump_dfm[,grep("pos", trump_dfm@Dimnames$features)]), 
+                        neg = as.numeric(trump_dfm[,grep("neg", trump_dfm@Dimnames$features)[2]]))
 
-#custom dictionary
-my_dictionary <- list(spending=c("expensive", "cost", "deficit","spending"),
-               spending2=c("expensive", "cost", "deficit","spend*"))
+head(trumpSent)
+```
 
-trump_dfm2<-dfm(trump_corpus,dictionary=my_dictionary,removeNumbers = TRUE, removePunct = TRUE, ignoredFeatures = stopwords("english"))
-trump_spend<-as.numeric(trump_dfm2[,1])
-trump_spend2<-as.numeric(trump_dfm2[,2])
+Now let's aggregate the data by month using the `dplyr` functions.
+To better presented with `ggplot2` functions, we reshape the original "wide" data to a "long" one.
 
-#boxplot...spending
-boxplot(data.frame(cbind("Spending1"=trump_spend/trump_wc,"Spending2"=trump_spend2/trump_wc)))
+```{r}
+trumpMonth <- mutate(trumpSent, month = lubridate::month(date, label = T)) %>%
+  # get the months from the dates
+  group_by(month) %>%
+    summarise(sumPos = sum(pos), sumNeg = sum(neg)) %>% 
+  # calculate the monthly counts
+      tidyr::gather(sentiment, counts, sumPos:sumNeg)
+  # reshape the data
 
+ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment))+
+  geom_bar(stat = "identity", position=position_dodge()) +
+  # bar graph basic
+  xlab("Month") + ylab("Sum of Word Counts") +
+  # axes labels
+  ggtitle("Dictionary-Based Sentiment Analysis", subtitle = "Trump-related Articles from NYT") + 
+  # title
+  scale_fill_discrete(name="Sentiment",breaks=c("sumPos", "sumNeg"),
+                      labels=c("Positive", "Negative"))
+  # legend
+
+```
+
+The next task is to replicate the above analysis but with a custom dictionary. 
+To simplify the job, I just subset the "money" and "sexual" items from the LIWC dictionary (see the full list by `names(liwc)`.
+Let's see how much the articles about Trump involve these issues.
+
+```{r}
+dictSim <- list(money = liwc[["money"]],
+                sex = liwc[["sexual"]])
+
+map(dictSim, head)
+```
+
+Then let's rerun the analysis.
+```{r}
+trump_dfm <- dfm(trump_corpus,  # corpus
+                 dictionary = dictSim, # dictionary file
+                 removeNumbers = TRUE,  # remove the digits
+                 removePunct = TRUE,  # remove the punctuations
+                 ignoredFeatures = stopCust) # tokenization
+
+trumpSent <- data.frame(date = trump_date, money = as.numeric(trump_dfm[,1]), 
+                        sex = as.numeric(trump_dfm[,2]))
+# no need to grep, since we know there are only two categories.
+
+trumpMonth <- mutate(trumpSent, month = lubridate::month(date, label = T)) %>%
+  # get the months from the dates
+  group_by(month) %>%
+    summarise(money = sum(money), gender = sum(sex)) %>% 
+  # calculate the monthly counts
+      tidyr::gather(sentiment, counts, money:gender)
+  # reshape the data
+
+ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  # bar graph basic
+  xlab("Month") + ylab("Sum of Word Counts") +
+  # axes labels
+  ggtitle("Dictionary-Based Issue Analysis", subtitle = "Trump-related Articles from NYT") + 
+  # title
+  scale_fill_discrete(name = "Issue")
+  # legend
 ```
 
