@@ -88,19 +88,22 @@ To better presented with `ggplot2` functions, we reshape the original "wide" dat
 trumpMonth <- mutate(trumpSent, month = lubridate::month(date, label = T)) %>%
   # get the months from the dates
   group_by(month) %>%
-    summarise(sumPos = sum(pos), sumNeg = sum(neg)) %>% 
+    summarise(sumPos = sum(pos), sumNeg = sum(neg)) %>%
+      mutate(sumTot = sumPos + sumNeg, 
+             pecPos = sumPos/sumTot, 
+             pecNeg = sumNeg/sumTot) %>%
   # calculate the monthly counts
-      tidyr::gather(sentiment, counts, sumPos:sumNeg)
+      tidyr::gather(sentiment, counts, pecPos:pecNeg)
   # reshape the data
 
 ggplot(data = trumpMonth, aes(x = month, y = counts, fill = sentiment)) +
   geom_bar(stat = "identity", position = position_dodge()) +
   # bar graph basic
-  xlab("Month") + ylab("Sum of Word Counts") +
+  xlab("Month") + ylab("Percentage of Sentiment Words") +
   # axes labels
   ggtitle("Dictionary-Based Sentiment Analysis", subtitle = "Trump-related Articles from NYT") + 
   # title
-  scale_fill_discrete(name = "Sentiment",breaks = c("sumPos", "sumNeg"),
+  scale_fill_discrete(name = "Sentiment",breaks = c("%Pos", "%Neg"),
                       labels = c("Positive", "Negative"))
 ```
 
@@ -130,7 +133,7 @@ trumpSent <- data.frame(date = trump_date, money = as.numeric(trump_dfm[,1]),
 trumpMonth <- mutate(trumpSent, month = lubridate::month(date, label = T)) %>%
   # get the months from the dates
   group_by(month) %>%
-    summarise(money = sum(money), gender = sum(sex)) %>% 
+    summarise(money = sum(money), gender = sum(sex)) 
   # calculate the monthly counts
       tidyr::gather(sentiment, counts, money:gender)
   # reshape the data
